@@ -148,6 +148,24 @@ function formatFrontmatterValue(key, value) {
   return JSON.stringify(value);
 }
 
+function normalizeUnknownFrontmatterValue(value) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return '';
+  }
+
+  if (trimmed === 'true' || trimmed === 'false') {
+    return trimmed;
+  }
+
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  return unquote(trimmed);
+}
+
 function parseFrontmatter(markdown) {
   const normalized = markdown.replace(/\r\n/g, '\n');
   const frontmatterMatch = normalized.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -229,8 +247,7 @@ function normalizeArticleContent(content, today = getTodayDate()) {
   }
 
   const tags = parseTagsValue(entryMap.get('tags'));
-  const featuredValue =
-    entryMap.has('featured') || entryMap.has('feature') ? false : false;
+  const featuredValue = false;
 
   const normalizedEntries = [
     ['title', title],
@@ -261,7 +278,7 @@ function normalizeArticleContent(content, today = getTodayDate()) {
     if (consumedKeys.has(entry.key)) {
       continue;
     }
-    normalizedEntries.push([entry.key, entry.value.trim()]);
+    normalizedEntries.push([entry.key, normalizeUnknownFrontmatterValue(entry.value)]);
   }
 
   const frontmatter = normalizedEntries
