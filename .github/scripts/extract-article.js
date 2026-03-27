@@ -331,7 +331,7 @@ function main() {
     const dir = `knowledge/${normalizedArticle.category.toLowerCase()}`;
     const filename = `${slug}.md`;
     const filepath = `${dir}/${filename}`;
-    const branch = `content/issue-${issue.number}-${slug}`;
+    const branch = `content/issue-${issue.number}-article`;
 
     setOutput('content', content);
     setOutput('article_title', articleTitle);
