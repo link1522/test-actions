@@ -39,6 +39,18 @@ function extractSection(bodyText, label, nextLabels = []) {
   return match ? match[1].trim() : '';
 }
 
+function extractFrontmatterTitle(markdown) {
+  const normalized = markdown.replace(/\r\n/g, '\n');
+  const frontmatterMatch = normalized.match(/^---\n([\s\S]*?)\n---/);
+
+  if (!frontmatterMatch) {
+    return '';
+  }
+
+  const titleMatch = frontmatterMatch[1].match(/^title:\s*["']?(.+?)["']?\s*$/m);
+  return titleMatch ? titleMatch[1].trim() : '';
+}
+
 const content = extractSection(body, '文章內容 / Article Content', [
   '參考資料 / Sources',
 ]);
@@ -49,6 +61,12 @@ if (!content) {
 
 if (!content || content === '_No response_') {
   fail('「文章內容 / Article Content」欄位是空的');
+}
+
+const articleTitle = extractFrontmatterTitle(content);
+
+if (!articleTitle) {
+  fail('找不到文章 frontmatter 的 title 欄位');
 }
 
 const categoryRaw =
@@ -77,6 +95,7 @@ const filepath = `${dir}/${filename}`;
 const branch = `content/issue-${issue.number}-${slug}`;
 
 setOutput('content', content);
+setOutput('article_title', articleTitle);
 setOutput('category', category);
 setOutput('dir', dir);
 setOutput('filename', filename);
