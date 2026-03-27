@@ -2,7 +2,7 @@ name: Create article from content issue
 
 on:
   issues:
-    types: [opened]
+    types: [opened, edited]
 
 permissions:
   contents: write
@@ -88,11 +88,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.issue.number,
-              body: `建立文章失敗，錯誤訊息如下：\n\n\`\`\`\n${errorMessage}\n\`\`\`\n\n請修正內容後另外開一個新的 issue。`
-            });
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.issue.number,
-              state: 'closed'
+              body: `建立文章失敗，錯誤訊息如下：\n\n\`\`\`\n${errorMessage}\n\`\`\`\n\n請直接修改這個 issue 的內容，儲存後會自動重新執行。`
             });
