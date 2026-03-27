@@ -23,27 +23,37 @@ if (!issue) {
 
 const body = issue.body || '';
 
-// 擷取 "文章內容 / Article Content"
-const contentMatch = body.match(
-  /###\s*文章內容\s*\/\s*Article Content\s*\n([\s\S]*?)(?=\n###\s|$)/
-);
-
-if (!contentMatch) {
-  fail('找不到「文章內容 / Article Content」欄位');
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-const content = contentMatch[1].trim();
+function extractSection(bodyText, label, nextLabels = []) {
+  const normalized = bodyText.replace(/\r\n/g, '\n');
+  const nextSectionPattern = nextLabels.length
+    ? `(?=\\n###\\s*(?:${nextLabels.map(escapeRegExp).join('|')})\\s*\\n|$)`
+    : '(?=$)';
+  const pattern = new RegExp(
+    `###\\s*${escapeRegExp(label)}\\s*\\n([\\s\\S]*?)${nextSectionPattern}`
+  );
+  const match = normalized.match(pattern);
+  return match ? match[1].trim() : '';
+}
+
+const content = extractSection(body, '文章內容 / Article Content', [
+  '參考資料 / Sources',
+]);
+
+if (!content) {
+  fail('找不到「文章內容 / Article Content」欄位');
+}
 
 if (!content || content === '_No response_') {
   fail('「文章內容 / Article Content」欄位是空的');
 }
 
-// 擷取 "分類 / Category"
-const categoryMatch = body.match(
-  /###\s*分類\s*\/\s*Category\s*\n([\s\S]*?)(?=\n###\s|$)/
-);
-
-const categoryRaw = categoryMatch ? categoryMatch[1].trim() : 'uncategorized';
+const categoryRaw =
+  extractSection(body, '分類 / Category', ['文章內容 / Article Content']) ||
+  'uncategorized';
 
 // "History (歷史)" -> "History"
 const category = categoryRaw.replace(/\s*\(.*?\)\s*$/, '').trim();
