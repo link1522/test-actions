@@ -20,7 +20,16 @@ jobs:
 
       - name: Extract article content from issue form
         id: extract
-        run: node .github/scripts/extract-article.js
+        shell: bash
+        run: |
+          if ! node .github/scripts/extract-article.js 2>extract-error.log; then
+            {
+              echo "message<<EOF"
+              cat extract-error.log
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
 
       - name: Create markdown file
         run: |
@@ -62,3 +71,18 @@ jobs:
                 body: `已根據 issue 內容建立檔案並開啟 PR：#${prNumber}`
               });
             }
+
+      - name: Comment error on issue
+        if: failure() && steps.extract.outcome == 'failure'
+        uses: actions/github-script@v7
+        env:
+          ERROR_MESSAGE: ${{ steps.extract.outputs.message }}
+        with:
+          script: |
+            const errorMessage = process.env.ERROR_MESSAGE || '未知錯誤';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: `建立文章失敗，錯誤訊息如下：\n\n\`\`\`\n${errorMessage}\n\`\`\``
+            });
