@@ -81,7 +81,25 @@ function parseTagsValue(rawValue) {
     return [];
   }
 
-  const stripQuotes = (item) => unquote(item).trim();
+  const normalizeTagItem = (item) => {
+    let normalized = item.trim();
+
+    for (let index = 0; index < 3; index += 1) {
+      const unescaped = normalized
+        .replace(/^\\(["'])/, '$1')
+        .replace(/\\(["'])$/, '$1')
+        .trim();
+
+      const unquoted = unquote(unescaped).trim();
+      if (unquoted === normalized) {
+        break;
+      }
+
+      normalized = unquoted;
+    }
+
+    return normalized;
+  };
 
   if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
     const inner = trimmed.slice(1, -1).trim();
@@ -91,13 +109,13 @@ function parseTagsValue(rawValue) {
 
     return inner
       .split(',')
-      .map((item) => stripQuotes(item))
+      .map((item) => normalizeTagItem(item))
       .filter(Boolean);
   }
 
-  return unquote(trimmed)
+  return trimmed
     .split(',')
-    .map((item) => stripQuotes(item))
+    .map((item) => normalizeTagItem(item))
     .filter(Boolean);
 }
 
