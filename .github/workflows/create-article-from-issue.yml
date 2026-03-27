@@ -88,5 +88,11 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.issue.number,
-              body: `建立文章失敗，錯誤訊息如下：\n\n\`\`\`\n${errorMessage}\n\`\`\``
+              body: `建立文章失敗，錯誤訊息如下：\n\n\`\`\`\n${errorMessage}\n\`\`\`\n\n請修正內容後另外開一個新的 issue。`
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              state: 'closed'
             });
