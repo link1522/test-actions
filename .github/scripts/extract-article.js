@@ -28,7 +28,9 @@ function fail(message) {
 }
 
 function failValidation(messages) {
-  const normalizedMessages = messages.filter(Boolean);
+  const normalizedMessages = messages
+    .filter(Boolean)
+    .map((message) => String(message).trim().replace(/^-\s+/, ''));
   fail(normalizedMessages.map((message) => `- ${message}`).join('\n'));
 }
 
