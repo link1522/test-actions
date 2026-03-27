@@ -42,6 +42,7 @@ jobs:
           EOF
 
       - name: Create pull request
+        id: create-pull-request
         uses: peter-evans/create-pull-request@v6
         with:
           branch: ${{ steps.extract.outputs.branch }}
