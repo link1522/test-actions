@@ -362,7 +362,7 @@ function extractArticleFromIssue(issue) {
   const content = normalizedArticle.content;
   const articleTitle = normalizedArticle.articleTitle;
   const slug = slugifyArticleTitle(articleTitle, `article-${issue.number}`);
-  const dir = `knowledge/${normalizedArticle.category.toLowerCase()}`;
+  const dir = `knowledge/${normalizedArticle.category}`;
   const filename = `${slug}.md`;
   const filepath = `${dir}/${filename}`;
   const branch = `content/issue-${issue.number}-article`;
