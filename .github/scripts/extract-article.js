@@ -266,6 +266,18 @@ function normalizeArticleContent(content, today = getTodayDate()) {
   };
 }
 
+function slugifyArticleTitle(title, fallback) {
+  const slug = String(title || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fff\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return slug || fallback;
+}
+
 function main() {
   try {
     const issuePath = process.env.GITHUB_EVENT_PATH;
@@ -315,16 +327,7 @@ function main() {
     const content = normalizedArticle.content;
     const articleTitle = normalizedArticle.articleTitle;
 
-    const slugBase = (issue.title || `article-${issue.number}`)
-      .replace(/^\[Article\]\s*/i, '')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9\u4e00-\u9fff\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-
-    const slug = slugBase || `article-${issue.number}`;
+    const slug = slugifyArticleTitle(articleTitle, `article-${issue.number}`);
     const dir = `knowledge/${normalizedArticle.category.toLowerCase()}`;
     const filename = `${slug}.md`;
     const filepath = `${dir}/${filename}`;
@@ -350,6 +353,7 @@ module.exports = {
   normalizeArticleContent,
   normalizeCategory,
   parseTagsValue,
+  slugifyArticleTitle,
 };
 
 if (require.main === module) {
