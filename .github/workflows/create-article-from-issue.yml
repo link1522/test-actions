@@ -22,14 +22,17 @@ jobs:
         id: extract
         shell: bash
         run: |
-          if ! node .github/scripts/extract-article.js 2>extract-error.log; then
+          error_log="$(mktemp)"
+          if ! node .github/scripts/extract-article.js 2>"$error_log"; then
             {
               echo "message<<EOF"
-              cat extract-error.log
+              cat "$error_log"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
+            rm -f "$error_log"
             exit 1
           fi
+          rm -f "$error_log"
 
       - name: Create markdown file
         run: |
