@@ -192,7 +192,7 @@ function parseFrontmatter(markdown) {
   return { entries, body };
 }
 
-function normalizeArticleContent(content, fallbackCategory, today = getTodayDate()) {
+function normalizeArticleContent(content, today = getTodayDate()) {
   const parsed = parseFrontmatter(content);
   if (!parsed) {
     fail('文章內容必須以 frontmatter 開頭，且至少包含 title 與 description');
@@ -210,13 +210,11 @@ function normalizeArticleContent(content, fallbackCategory, today = getTodayDate
     fail('frontmatter 缺少必要欄位：description');
   }
 
-  const normalizedCategory =
-    normalizeCategory(entryMap.get('category') || '') ||
-    normalizeCategory(fallbackCategory || '');
+  const normalizedCategory = normalizeCategory(entryMap.get('category') || '');
 
   if (!normalizedCategory) {
     fail(
-      `category 必須是以下其中一種：${Array.from(ALLOWED_CATEGORIES).join(', ')}`
+      `frontmatter 缺少有效的 category，必須是以下其中一種：${Array.from(ALLOWED_CATEGORIES).join(', ')}`
     );
   }
 
@@ -295,16 +293,7 @@ function main() {
       fail('「文章內容 / Article Content」欄位是空的');
     }
 
-    const categoryRaw =
-      extractSection(body, '分類 / Category', ['文章內容 / Article Content']) ||
-      'uncategorized';
-    const category = normalizeCategory(categoryRaw);
-
-    if (!category) {
-      fail(`無效的分類：${categoryRaw}`);
-    }
-
-    const normalizedArticle = normalizeArticleContent(rawContent, category);
+    const normalizedArticle = normalizeArticleContent(rawContent);
     const content = normalizedArticle.content;
     const articleTitle = normalizedArticle.articleTitle;
 
