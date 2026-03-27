@@ -369,6 +369,10 @@ function extractArticleFromIssue(issue) {
   const filepath = `${dir}/${filename}`;
   const branch = `content/issue-${issue.number}-article`;
 
+  if (fs.existsSync(filepath)) {
+    failValidation([`檔案已存在，無法建立：${filepath}`]);
+  }
+
   return {
     content,
     articleTitle,
