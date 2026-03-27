@@ -293,7 +293,25 @@ function main() {
       fail('「文章內容 / Article Content」欄位是空的');
     }
 
+    const categoryRaw = extractSection(body, '分類 / Category', [
+      '文章內容 / Article Content',
+    ]);
+    const issueCategory = normalizeCategory(categoryRaw);
+
+    if (!issueCategory) {
+      fail(
+        `issue 的「分類 / Category」無效，必須是以下其中一種：${Array.from(ALLOWED_CATEGORIES).join(', ')}`
+      );
+    }
+
     const normalizedArticle = normalizeArticleContent(rawContent);
+
+    if (normalizedArticle.category !== issueCategory) {
+      fail(
+        `issue 的分類 (${issueCategory}) 與 frontmatter 的 category (${normalizedArticle.category}) 必須相同`
+      );
+    }
+
     const content = normalizedArticle.content;
     const articleTitle = normalizedArticle.articleTitle;
 
