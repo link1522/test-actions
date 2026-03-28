@@ -1,4 +1,6 @@
-const fs = require('fs');
+import fs from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 const ALLOWED_CATEGORIES = new Set([
   'Art',
@@ -20,7 +22,23 @@ function getTodayDate() {
 }
 
 function setOutput(name, value) {
-  fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}<<EOF\n${value}\nEOF\n`);
+  const delimiter = `OUTPUT_${randomUUID()}`;
+  fs.appendFileSync(
+    process.env.GITHUB_OUTPUT,
+    `${name}<<${delimiter}\n${value}\n${delimiter}\n`,
+  );
+}
+
+function ensureDirectoryForFile(filepath) {
+  const directory = filepath.includes('/')
+    ? filepath.slice(0, filepath.lastIndexOf('/'))
+    : '.';
+  fs.mkdirSync(directory, { recursive: true });
+}
+
+function writeArticleFile(filepath, content) {
+  ensureDirectoryForFile(filepath);
+  fs.writeFileSync(filepath, content, 'utf8');
 }
 
 function fail(message) {
@@ -44,7 +62,7 @@ function extractSection(bodyText, label, nextLabels = []) {
     ? `(?=\\n###\\s*(?:${nextLabels.map(escapeRegExp).join('|')})\\s*\\n|$)`
     : '(?=$)';
   const pattern = new RegExp(
-    `###\\s*${escapeRegExp(label)}\\s*\\n([\\s\\S]*?)${nextSectionPattern}`
+    `###\\s*${escapeRegExp(label)}\\s*\\n([\\s\\S]*?)${nextSectionPattern}`,
   );
   const match = normalized.match(pattern);
   return match ? match[1].trim() : '';
@@ -58,7 +76,9 @@ function extractFrontmatterTitle(markdown) {
     return '';
   }
 
-  const titleMatch = frontmatterMatch[1].match(/^title:\s*["']?(.+?)["']?\s*$/m);
+  const titleMatch = frontmatterMatch[1].match(
+    /^title:\s*["']?(.+?)["']?\s*$/m,
+  );
   return titleMatch ? titleMatch[1].trim() : '';
 }
 
@@ -74,7 +94,9 @@ function unquote(value) {
 }
 
 function normalizeCategory(rawCategory) {
-  const cleaned = unquote(rawCategory || '').replace(/\s*\(.*?\)\s*$/, '').trim();
+  const cleaned = unquote(rawCategory || '')
+    .replace(/\s*\(.*?\)\s*$/, '')
+    .trim();
   return ALLOWED_CATEGORIES.has(cleaned) ? cleaned : '';
 }
 
@@ -170,7 +192,9 @@ function normalizeUnknownFrontmatterValue(value) {
 
 function parseFrontmatter(markdown) {
   const normalized = markdown.replace(/\r\n/g, '\n');
-  const frontmatterMatch = normalized.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  const frontmatterMatch = normalized.match(
+    /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/,
+  );
 
   if (!frontmatterMatch) {
     return null;
@@ -223,7 +247,9 @@ function normalizeArticleContent(content, today = getTodayDate()) {
     fail('文章內容必須以 frontmatter 開頭，且至少包含 title 與 description');
   }
 
-  const entryMap = new Map(parsed.entries.map((entry) => [entry.key, entry.value]));
+  const entryMap = new Map(
+    parsed.entries.map((entry) => [entry.key, entry.value]),
+  );
   const title = unquote(entryMap.get('title') || '');
   const description = unquote(entryMap.get('description') || '');
   const errors = [];
@@ -240,7 +266,7 @@ function normalizeArticleContent(content, today = getTodayDate()) {
 
   if (!normalizedCategory) {
     errors.push(
-      `frontmatter 缺少有效的 category，必須是以下其中一種：${Array.from(ALLOWED_CATEGORIES).join(', ')}`
+      `frontmatter 缺少有效的 category，必須是以下其中一種：${Array.from(ALLOWED_CATEGORIES).join(', ')}`,
     );
   }
 
@@ -254,7 +280,10 @@ function normalizeArticleContent(content, today = getTodayDate()) {
   const normalizedEntries = [
     ['title', title],
     ['description', description],
-    ['author', unquote(entryMap.get('author') || '') || 'Taiwan.md Contributors'],
+    [
+      'author',
+      unquote(entryMap.get('author') || '') || 'Taiwan.md Contributors',
+    ],
     ['date', unquote(entryMap.get('date') || '') || today],
   ];
 
@@ -280,7 +309,10 @@ function normalizeArticleContent(content, today = getTodayDate()) {
     if (consumedKeys.has(entry.key)) {
       continue;
     }
-    normalizedEntries.push([entry.key, normalizeUnknownFrontmatterValue(entry.value)]);
+    normalizedEntries.push([
+      entry.key,
+      normalizeUnknownFrontmatterValue(entry.value),
+    ]);
   }
 
   const frontmatter = normalizedEntries
@@ -333,7 +365,7 @@ function extractArticleFromIssue(issue) {
 
   if (!issueCategory) {
     errors.push(
-      `issue 的「分類 / Category」無效，必須是以下其中一種：${Array.from(ALLOWED_CATEGORIES).join(', ')}`
+      `issue 的「分類 / Category」無效，必須是以下其中一種：${Array.from(ALLOWED_CATEGORIES).join(', ')}`,
     );
   }
 
@@ -343,7 +375,12 @@ function extractArticleFromIssue(issue) {
       normalizedArticle = normalizeArticleContent(rawContent);
     } catch (error) {
       const message = error.message || String(error);
-      errors.push(...message.split('\n').map((line) => line.trim()).filter(Boolean));
+      errors.push(
+        ...message
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+      );
     }
   }
 
@@ -353,7 +390,7 @@ function extractArticleFromIssue(issue) {
     normalizedArticle.category !== issueCategory
   ) {
     errors.push(
-      `issue 的分類 (${issueCategory}) 與 frontmatter 的 category (${normalizedArticle.category}) 必須相同`
+      `issue 的分類 (${issueCategory}) 與 frontmatter 的 category (${normalizedArticle.category}) 必須相同`,
     );
   }
 
@@ -394,7 +431,8 @@ function main() {
     const event = JSON.parse(fs.readFileSync(issuePath, 'utf8'));
     const extracted = extractArticleFromIssue(event.issue);
 
-    setOutput('content', extracted.content);
+    writeArticleFile(extracted.filepath, extracted.content);
+
     setOutput('article_title', extracted.articleTitle);
     setOutput('category', extracted.category);
     setOutput('dir', extracted.dir);
@@ -407,8 +445,9 @@ function main() {
   }
 }
 
-module.exports = {
+export {
   ALLOWED_CATEGORIES,
+  ensureDirectoryForFile,
   extractArticleFromIssue,
   extractSection,
   extractFrontmatterTitle,
@@ -416,8 +455,9 @@ module.exports = {
   normalizeCategory,
   parseTagsValue,
   slugifyArticleTitle,
+  writeArticleFile,
 };
 
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }

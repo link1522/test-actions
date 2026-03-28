@@ -24,22 +24,16 @@ jobs:
         run: |
           error_log="$(mktemp)"
           if ! node .github/scripts/extract-article.js 2>"$error_log"; then
+            delimiter="OUTPUT_$(uuidgen)"
             {
-              echo "message<<EOF"
+              echo "message<<$delimiter"
               cat "$error_log"
-              echo "EOF"
+              echo "$delimiter"
             } >> "$GITHUB_OUTPUT"
             rm -f "$error_log"
             exit 1
           fi
           rm -f "$error_log"
-
-      - name: Create markdown file
-        run: |
-          mkdir -p "${{ steps.extract.outputs.dir }}"
-          cat > "${{ steps.extract.outputs.filepath }}" <<'EOF'
-          ${{ steps.extract.outputs.content }}
-          EOF
 
       - name: Create pull request
         id: create-pull-request
