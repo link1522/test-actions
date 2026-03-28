@@ -4,6 +4,10 @@ on:
   issues:
     types: [opened, edited]
 
+concurrency:
+  group: create-article-from-issue-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write
@@ -16,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Extract article content from issue form
         id: extract
@@ -37,19 +41,9 @@ jobs:
 
       - name: Sanitize article title
         id: sanitize-title
-        uses: actions/github-script@v7
         env:
           ARTICLE_TITLE: ${{ steps.extract.outputs.article_title }}
-        with:
-          script: |
-            const rawTitle = process.env.ARTICLE_TITLE ?? '';
-            const sanitizedTitle = rawTitle
-              .replace(/[\r\n]+/g, ' ')
-              .replace(/[\u0000-\u001F\u007F]/g, '')
-              .replace(/\s+/g, ' ')
-              .trim() || 'untitled';
-
-            core.setOutput('article_title', sanitizedTitle);
+        run: node .github/scripts/sanitize-article-title.js
 
       - name: Create pull request
         id: create-pull-request
@@ -73,7 +67,7 @@ jobs:
 
       - name: Comment on issue
         if: success()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const prNumber = "${{ steps.create-pull-request.outputs.pull-request-number }}";
@@ -88,7 +82,7 @@ jobs:
 
       - name: Comment error on issue
         if: failure() && steps.extract.outcome == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           ERROR_MESSAGE: ${{ steps.extract.outputs.message }}
         with:
